@@ -19,6 +19,36 @@
 #define DEFAULT_PORT "1337"
 #define DEFAULT_BUFLEN 512
 
+class addr_info
+{
+	public:
+		struct addrinfo *result = NULL, *ptr = NULL, hints;
+
+		addr_info()
+		{
+			ZeroMemory(&hints, sizeof(hints));
+		}
+		~addr_info()
+		{
+			freeaddrinfo(result);
+		}
+	private:
+};
+
+class wsa_data
+{
+	public:
+		int result = 0;
+		WSADATA wsaData{};
+
+		wsa_data()
+		{
+			//request ver 2.2 of winsock be setup at address of wsaData		
+			result = WSAStartup(MAKEWORD(2, 2), &wsaData);
+		}
+		
+	private:
+};
 
 
 int main()
@@ -26,12 +56,11 @@ int main()
 	////////////////////////////////////////////
 	//INITIALIZE A SOCKET
 	//init the winsock by creating a WSADATA obj
-	WSADATA wsaData{};
-	int iResult{};
-	//call WSAstartup and check the result
-	//request ver 2.2 of winsock be setup at address of wsaData
-	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-	if (iResult != 0)
+	wsa_data wsaData{};
+	int iResult = 0;
+
+
+	if (wsaData.result != 0)
 	{
 		std::cout << "WSAStartup failed" << std::endl;
 		return 1;
@@ -40,15 +69,16 @@ int main()
 
 	////////////////////////////////////////////
 	//dns resolution
-	struct addrinfo *result = NULL, *ptr = NULL, hints;
-	ZeroMemory(&hints, sizeof(hints));
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
+	/////////*struct addrinfo *result = NULL, *ptr = NULL, hints;
+	////////ZeroMemory(&hints, sizeof(hints));*/
+	addr_info name_hint{};
+	name_hint.hints.ai_family = AF_INET;
+	name_hint.hints.ai_socktype = SOCK_STREAM;
+	name_hint.hints.ai_protocol = IPPROTO_TCP;
 	//setting the AI_PASSIVE flag here means we'll bind a socket
-	hints.ai_flags = AI_PASSIVE;
+	name_hint.hints.ai_flags = AI_PASSIVE;
 
-	iResult = getaddrinfo(NULL, DEFAULT_PORT, &hints, &result);
+	iResult = getaddrinfo(NULL, DEFAULT_PORT, &name_hint.hints, &name_hint.result);
 	if (iResult != 0)
 	{
 		WSACleanup();
@@ -59,12 +89,10 @@ int main()
 	////////////////////////////////////////////
 	//create an IPv4 TCP socket object
 	SOCKET ListenSocket = INVALID_SOCKET;
-	ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+	ListenSocket = socket(name_hint.result->ai_family, name_hint.result->ai_socktype, name_hint.result->ai_protocol);
 	if (ListenSocket == INVALID_SOCKET)
 	{
 		std::cout << "ListenSocket failed" << std::endl;
-		freeaddrinfo(result);
-		WSACleanup();
 		return 1;
 	}
 	//at this point the socket is created but not bound
@@ -72,18 +100,16 @@ int main()
 	////////////////////////////////////////////
 	//bind the socket
 
-	iResult = bind(ListenSocket, result->ai_addr, (int)result->ai_addrlen);
+	iResult = bind(ListenSocket, name_hint.result->ai_addr, (int)name_hint.result->ai_addrlen);
 	if (iResult == SOCKET_ERROR)
 	{
 		std::cout << "bind failed" << std::endl;
-		freeaddrinfo(result);
 		closesocket(ListenSocket);
-		WSACleanup();
 		return 1;
 	}
 
 	//getaddrinfo is no longer needed once the bind is complete
-	freeaddrinfo(result);
+	//freeaddrinfo(name_hint.result);
 
 
 	////////////////////////////////////////////
