@@ -21,7 +21,6 @@
 
 
 
-
 int main()
 {
 	////////////////////////////////////////////
@@ -40,8 +39,7 @@ int main()
 
 
 	////////////////////////////////////////////
-	//instantiate the socket object
-	//setup hint object which will be used with getaddrinfo to eventually get us a socket
+	//dns resolution
 	struct addrinfo *result = NULL, *ptr = NULL, hints;
 	ZeroMemory(&hints, sizeof(hints));
 	hints.ai_family = AF_INET;
