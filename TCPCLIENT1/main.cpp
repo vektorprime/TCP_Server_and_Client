@@ -26,7 +26,7 @@ int main()
 	struct addrinfo *result = NULL, *ptr = NULL, hints;
 
 	std::string server_address_q;
-	std::cout << "Enter the server hostname or IPv4 address \n";
+	std::cout << "Enter the server hostname or IPv4 address" << std::endl;
 	std::cin >> server_address_q;
 
 	PCSTR server_address = server_address_q.c_str();
@@ -91,13 +91,18 @@ int main()
 
 	//setup buffers for send and receive
 	int recvbuflen = DEFAULT_BUFLEN;
-	char sendbuff[DEFAULT_BUFLEN];
-	char recvbuf[DEFAULT_BUFLEN];
-
-	//send data
-	while (std::cin >> sendbuff)
+	//char sendbuff[DEFAULT_BUFLEN];
+	char recvbuf[DEFAULT_BUFLEN]{};
+	bool running = true;
+	std::string sendbuff_string;
+	while (running)
 	{
-		iResult = send(ConnectSocket, sendbuff, (int)strlen(sendbuff), 0);
+		//send data
+		std::cout << "Enter the message and hit enter \n";
+		std::getline(std::cin, sendbuff_string);
+
+		const char *sendbuff[DEFAULT_BUFLEN] = { sendbuff_string.c_str() };
+		iResult = send(ConnectSocket, *sendbuff, (int)strlen(*sendbuff), 0);
 		if (iResult == SOCKET_ERROR)
 		{
 			std::cout << "Send failed" << std::endl;
@@ -106,38 +111,48 @@ int main()
 			return 1;
 		}
 
-		std::cout << (int)strlen(sendbuff) << " Bytes sent" << std::endl;
+		std::cout << (int)strlen(*sendbuff) << " Bytes sent" << std::endl;
 
+		std::cout << "Press any key to send another message, or type quit to close \n";
+		std::string continue_q;
+		std::getline(std::cin, continue_q);
+		if (continue_q == "quit")
+		{
+			running = false;
+		}
+		
 	}
-	//shutdown the connection for sending, but still allow the receiving of data
-	iResult = shutdown(ConnectSocket, SD_SEND);
-	if (iResult == SOCKET_ERROR)
-	{
-		std::cout << "Shutdown failed" << std::endl;
-		closesocket(ConnectSocket);
-		WSACleanup();
-		return 1;
-	}
+		//shutdown the connection for sending, but still allow the receiving of data
+		iResult = shutdown(ConnectSocket, SD_SEND);
+		if (iResult == SOCKET_ERROR)
+		{
+			std::cout << "Shutdown failed" << std::endl;
+			closesocket(ConnectSocket);
+			WSACleanup();
+			return 1;
+		}
 
 
-	//receive data
-	do
-	{
-		iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-		if (iResult > 0)
-		{
-			std::cout << iResult << " Bytes received" << std::endl;
-		}
-		else if (iResult == 0)
-		{
-			std::cout << "Connection closed" << std::endl;
-		}
-		else
-		{
-			std::cout << "Recv failed" << std::endl;
-		}
+		////receive data
+		//do
+		//{
+		//	iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+		//	if (iResult > 0)
+		//	{
+		//		std::cout << iResult << " Bytes received" << std::endl;
+		//	}
+		//	else if (iResult == 0)
+		//	{
+		//		std::cout << "Connection closed" << std::endl;
+		//	}
+		//	else
+		//	{
+		//		std::cout << "Recv failed" << std::endl;
+		//	}
+
+		//} while (iResult > 0);
 	
-	} while (iResult > 0);
+	
 
 
 	//cleanup
