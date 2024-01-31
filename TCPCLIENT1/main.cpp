@@ -20,18 +20,17 @@
 
 
 
-int main(int argc, char *argv[])
+int main()
 {
 	WSADATA wsaData{};
 	struct addrinfo *result = NULL, *ptr = NULL, hints;
 
+	std::string server_address_q;
+	std::cout << "Enter the server hostname or IPv4 address \n";
+	std::cin >> server_address_q;
 
-	////validate
-	//if (argc != 2)
-	//{
-	//	std::cout << "need a server IP or name" << std::endl;
-	//	return 1;
-	//}
+	PCSTR server_address = server_address_q.c_str();
+
 
 	//init winsock
 	int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -51,7 +50,7 @@ int main(int argc, char *argv[])
 	hints.ai_protocol = IPPROTO_TCP;
 
 	//we use the hints to select an adapter
-	iResult = getaddrinfo("localhost", DEFAULT_PORT, &hints, &result);
+	iResult = getaddrinfo(server_address, DEFAULT_PORT, &hints, &result);
 	if (iResult != 0)
 	{
 		std::cout << "getaddrinfo failed" << std::endl;
@@ -92,21 +91,24 @@ int main(int argc, char *argv[])
 
 	//setup buffers for send and receive
 	int recvbuflen = DEFAULT_BUFLEN;
-	const char *sendbuf = "This is a test";
+	char sendbuff[DEFAULT_BUFLEN];
 	char recvbuf[DEFAULT_BUFLEN];
 
 	//send data
-	iResult = send(ConnectSocket, sendbuf, (int)strlen(sendbuf), 0);
-	if (iResult == SOCKET_ERROR)
+	while (std::cin >> sendbuff)
 	{
-		std::cout << "Send failed" << std::endl;
-		closesocket(ConnectSocket);
-		WSACleanup();
-		return 1;
+		iResult = send(ConnectSocket, sendbuff, (int)strlen(sendbuff), 0);
+		if (iResult == SOCKET_ERROR)
+		{
+			std::cout << "Send failed" << std::endl;
+			closesocket(ConnectSocket);
+			WSACleanup();
+			return 1;
+		}
+
+		std::cout << (int)strlen(sendbuff) << " Bytes sent" << std::endl;
+
 	}
-
-	std::cout << (int)strlen(sendbuf) << " Bytes sent" << std::endl;
-
 	//shutdown the connection for sending, but still allow the receiving of data
 	iResult = shutdown(ConnectSocket, SD_SEND);
 	if (iResult == SOCKET_ERROR)

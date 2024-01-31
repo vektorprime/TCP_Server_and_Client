@@ -68,7 +68,7 @@ int main()
 
 
 	////////////////////////////////////////////
-	//dns resolution
+	//chgoosing the correct adapter and Ip address
 	/////////*struct addrinfo *result = NULL, *ptr = NULL, hints;
 	////////ZeroMemory(&hints, sizeof(hints));*/
 	addr_info name_hint{};
@@ -146,29 +146,45 @@ int main()
 	int iSendResult{};
 	int recvbuflen = DEFAULT_BUFLEN;
 
-	do
-	{
-		iResult = recv(ClientSocket, recvbuf, recvbuflen, 0);
-		if (iResult > 0)
+	bool receive_data = true;
+		while (receive_data)
 		{
-			std::cout << iResult << " Bytes received" << std::endl;
+			iResult = recv(ClientSocket, recvbuf, recvbuflen, 0);
+			if (iResult > 0)
+			{
+				std::cout << iResult << " Bytes received" << std::endl;
 
-			std::cout << "Received data is : " << recvbuf << std::endl;
+				std::cout << "Received data is : " << recvbuf << std::endl;
 
-			// Echo the buffer back to the sender
-			iSendResult = send(ClientSocket, recvbuf, iResult, 0);
-			if (iSendResult == SOCKET_ERROR) {
-				printf("Send failed with error: %d\n", WSAGetLastError());
+				//// Echo the buffer back to the sender
+				//iSendResult = send(ClientSocket, recvbuf, iResult, 0);
+				//if (iSendResult == SOCKET_ERROR) {
+				//	printf("Send failed with error: %d\n", WSAGetLastError());
+				//	closesocket(ClientSocket);
+				//	WSACleanup();
+				//	return 1;
+				//}
+
+				//std::cout << iSendResult << " Bytes sent" << std::endl;
+			}
+			memset(&recvbuf, 0, sizeof(recvbuf));
+		}
+
+		if (iResult == 0)
+		{
+			std::cout << "Closing connection" << std::endl;
+			////////////////////////////////////////////
+			//begin shutting down the connection, only allow data to be received not sent
+
+			iResult = shutdown(ClientSocket, SD_SEND);
+			if (iResult == SOCKET_ERROR)
+			{
+				std::cout << "Shutdown failed" << std::endl;
 				closesocket(ClientSocket);
 				WSACleanup();
 				return 1;
 			}
 
-			std::cout << iSendResult << " Bytes sent" << std::endl;
-		}
-		else if (iResult == 0)
-		{
-			std::cout << "Closing connection" << std::endl;
 		}
 		else
 		{
@@ -177,20 +193,7 @@ int main()
 			WSACleanup();
 			return 1;
 		}
-	} while (iResult > 0);
 
-
-	////////////////////////////////////////////
-	//begin shutting down the connection, only allow data to be received not sent
-	
-	iResult = shutdown(ClientSocket, SD_SEND);
-	if (iResult == SOCKET_ERROR)
-	{
-		std::cout << "Shutdown failed" << std::endl;
-		closesocket(ClientSocket);
-		WSACleanup();
-		return 1;
-	}
 
 	//cleanup
 	closesocket(ClientSocket);
