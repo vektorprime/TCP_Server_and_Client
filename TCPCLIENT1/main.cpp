@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <fstream>
 
 // Need to link with Ws2_32.lib, Mswsock.lib, and Advapi32.lib
 #pragma comment (lib, "Ws2_32.lib")
@@ -99,7 +100,6 @@ int main()
 	{
 		std::string sendbuff_string;
 		u_int64 bytes_packaged{};
-		u_int64 segment{};
 		//send data
 		std::cout << "Enter the message and hit enter" << std::endl;
 		
@@ -110,12 +110,12 @@ int main()
 
 		while (bytes_packaged < sendbuff_string.size())
 		{
-			for (int i = 0; i < 511; ++i)
+			for (int i = 0; i <= 511; ++i)
 			{
-				if (bytes_packaged < sendbuff_string.size())
+				if (bytes_packaged <= sendbuff_string.size())
 				{
+					sendbuff[i] = sendbuff_string[bytes_packaged];
 					++bytes_packaged;
-					sendbuff[i] = sendbuff_string[i + segment];
 				}
 				else
 				{
@@ -123,9 +123,9 @@ int main()
 				}
 			
 			}
-			segment += 511;
-
-			iResult = send(ConnectSocket, sendbuff, (int)strlen(sendbuff), 0);
+	/*		int testint = strlen(sendbuff);
+			std::cout << testint << std::endl;*/
+			iResult = send(ConnectSocket, sendbuff, strlen(sendbuff), 0);
 			if (iResult == SOCKET_ERROR)
 			{
 				std::cout << "Send failed" << std::endl;
@@ -137,14 +137,6 @@ int main()
 
 		}
 	
-
-		//std::cout << "Press any key to send another message, or type quit to close \n";
-		//std::string continue_q;
-		//std::getline(std::cin, continue_q);
-		//if (continue_q == "quit")
-		//{
-		//	running = false;
-		//}
 		
 	}
 		//shutdown the connection for sending, but still allow the receiving of data
