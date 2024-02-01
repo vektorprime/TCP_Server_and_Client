@@ -6,9 +6,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-
 #include <iostream>
 #include <string>
+#include <vector>
 
 // Need to link with Ws2_32.lib, Mswsock.lib, and Advapi32.lib
 #pragma comment (lib, "Ws2_32.lib")
@@ -28,7 +28,7 @@ int main()
 	std::string server_address_q;
 	std::cout << "Enter the server hostname or IPv4 address" << std::endl;
 	std::cin >> server_address_q;
-
+	std::cin.ignore();
 	PCSTR server_address = server_address_q.c_str();
 
 
@@ -94,32 +94,57 @@ int main()
 	//char sendbuff[DEFAULT_BUFLEN];
 	char recvbuf[DEFAULT_BUFLEN]{};
 	bool running = true;
-	std::string sendbuff_string;
+
 	while (running)
 	{
+		std::string sendbuff_string;
+		u_int64 bytes_packaged{};
+		u_int64 segment{};
 		//send data
-		std::cout << "Enter the message and hit enter \n";
+		std::cout << "Enter the message and hit enter" << std::endl;
+		
 		std::getline(std::cin, sendbuff_string);
+		char sendbuff[DEFAULT_BUFLEN]{};
+		std::cout << "sendbuff_string.size() is " << sendbuff_string.size() << std::endl;
 
-		const char *sendbuff[DEFAULT_BUFLEN] = { sendbuff_string.c_str() };
-		iResult = send(ConnectSocket, *sendbuff, (int)strlen(*sendbuff), 0);
-		if (iResult == SOCKET_ERROR)
+
+		while (bytes_packaged < sendbuff_string.size())
 		{
-			std::cout << "Send failed" << std::endl;
-			closesocket(ConnectSocket);
-			WSACleanup();
-			return 1;
-		}
+			for (int i = 0; i < 511; ++i)
+			{
+				if (bytes_packaged < sendbuff_string.size())
+				{
+					++bytes_packaged;
+					sendbuff[i] = sendbuff_string[i + segment];
+				}
+				else
+				{
+					break;
+				}
+			
+			}
+			segment += 511;
 
-		std::cout << (int)strlen(*sendbuff) << " Bytes sent" << std::endl;
+			iResult = send(ConnectSocket, sendbuff, (int)strlen(sendbuff), 0);
+			if (iResult == SOCKET_ERROR)
+			{
+				std::cout << "Send failed" << std::endl;
+				closesocket(ConnectSocket);
+				WSACleanup();
+				return 1;
+			}
+			memset(&sendbuff, 0, sizeof(sendbuff));
 
-		std::cout << "Press any key to send another message, or type quit to close \n";
-		std::string continue_q;
-		std::getline(std::cin, continue_q);
-		if (continue_q == "quit")
-		{
-			running = false;
 		}
+	
+
+		//std::cout << "Press any key to send another message, or type quit to close \n";
+		//std::string continue_q;
+		//std::getline(std::cin, continue_q);
+		//if (continue_q == "quit")
+		//{
+		//	running = false;
+		//}
 		
 	}
 		//shutdown the connection for sending, but still allow the receiving of data

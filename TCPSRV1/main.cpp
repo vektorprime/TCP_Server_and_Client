@@ -46,10 +46,33 @@ class wsa_data
 			//request ver 2.2 of winsock be setup at address of wsaData		
 			result = WSAStartup(MAKEWORD(2, 2), &wsaData);
 		}
+
+		~wsa_data()
+		{
+			WSACleanup();
+		}
 		
 	private:
 };
 
+
+class net_socket
+{
+	public:
+		SOCKET socket_instance = INVALID_SOCKET;
+
+		net_socket() = default;
+		net_socket(addr_info &name_hint)
+		{
+			socket_instance = socket(name_hint.result->ai_family, name_hint.result->ai_socktype, name_hint.result->ai_protocol);
+		}
+		~net_socket()
+		{
+			closesocket(socket_instance);
+		}
+
+	private:
+};
 
 int main()
 {
@@ -81,16 +104,17 @@ int main()
 	iResult = getaddrinfo(NULL, DEFAULT_PORT, &name_hint.hints, &name_hint.result);
 	if (iResult != 0)
 	{
-		WSACleanup();
+		
 		std::cout << "getaddrinfo failed" << std::endl;
 		return 1;
 	}
 
 	////////////////////////////////////////////
 	//create an IPv4 TCP socket object
-	SOCKET ListenSocket = INVALID_SOCKET;
-	ListenSocket = socket(name_hint.result->ai_family, name_hint.result->ai_socktype, name_hint.result->ai_protocol);
-	if (ListenSocket == INVALID_SOCKET)
+	//SOCKET ListenSocket = INVALID_SOCKET;
+	net_socket ListenSocket(name_hint);
+	//ListenSocket = socket(name_hint.result->ai_family, name_hint.result->ai_socktype, name_hint.result->ai_protocol);
+	if (ListenSocket.socket_instance == INVALID_SOCKET)
 	{
 		std::cout << "ListenSocket failed" << std::endl;
 		return 1;
@@ -100,11 +124,10 @@ int main()
 	////////////////////////////////////////////
 	//bind the socket
 
-	iResult = bind(ListenSocket, name_hint.result->ai_addr, (int)name_hint.result->ai_addrlen);
+	iResult = bind(ListenSocket.socket_instance, name_hint.result->ai_addr, (int)name_hint.result->ai_addrlen);
 	if (iResult == SOCKET_ERROR)
 	{
 		std::cout << "bind failed" << std::endl;
-		closesocket(ListenSocket);
 		return 1;
 	}
 
@@ -115,11 +138,9 @@ int main()
 	////////////////////////////////////////////
 	//listen for incoming requests 
 
-	if (listen(ListenSocket, SOMAXCONN) == SOCKET_ERROR)
+	if (listen(ListenSocket.socket_instance, SOMAXCONN) == SOCKET_ERROR)
 	{
 		std::cout << "Listen failed" << std::endl;
-		closesocket(ListenSocket);
-		WSACleanup();
 		return 1;
 	}
 
@@ -128,17 +149,15 @@ int main()
 	SOCKET ClientSocket = INVALID_SOCKET;
 	
 	//thread will listen here for a connection, no loop required for a simple example
-	ClientSocket = accept(ListenSocket, NULL, NULL);
+	ClientSocket = accept(ListenSocket.socket_instance, NULL, NULL);
 	if (ClientSocket == INVALID_SOCKET)
 	{
 		std::cout << "accepting a connection failed" << std::endl;
-		closesocket(ListenSocket);
-		WSACleanup();
 		return 1;
 	}
 
 	//no longer need the server socket because??
-	closesocket(ListenSocket);
+	//closesocket(ListenSocket);
 
 	////////////////////////////////////////////
 	//send and receive data
@@ -167,6 +186,7 @@ int main()
 
 				//std::cout << iSendResult << " Bytes sent" << std::endl;
 			}
+			//zero out the buff
 			memset(&recvbuf, 0, sizeof(recvbuf));
 		}
 
