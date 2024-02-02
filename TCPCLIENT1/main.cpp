@@ -1,3 +1,8 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
+
 #define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
@@ -17,7 +22,7 @@
 #pragma comment (lib, "AdvApi32.lib")
 
 #define DEFAULT_PORT "1337"
-#define DEFAULT_BUFLEN 512
+#define DEFAULT_BUFLEN 12
 
 
 
@@ -99,7 +104,7 @@ int main()
 	while (running)
 	{
 		std::string sendbuff_string;
-		u_int64 bytes_packaged{};
+		u_int64 bytes_packaged = 0;
 		//send data
 		std::cout << "Enter the message and hit enter" << std::endl;
 		
@@ -107,12 +112,11 @@ int main()
 		char sendbuff[DEFAULT_BUFLEN]{};
 		std::cout << "sendbuff_string.size() is " << sendbuff_string.size() << std::endl;
 
-
 		while (bytes_packaged < sendbuff_string.size())
 		{
-			for (int i = 0; i <= 511; ++i)
+			for (uint64_t i = 0; i < DEFAULT_BUFLEN - 1; ++i)
 			{
-				if (bytes_packaged <= sendbuff_string.size())
+				if (bytes_packaged < sendbuff_string.size())
 				{
 					sendbuff[i] = sendbuff_string[bytes_packaged];
 					++bytes_packaged;
@@ -121,7 +125,6 @@ int main()
 				{
 					break;
 				}
-			
 			}
 	/*		int testint = strlen(sendbuff);
 			std::cout << testint << std::endl;*/

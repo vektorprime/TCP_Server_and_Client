@@ -1,3 +1,8 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
+
 #undef UNICODE
 
 #define WIN32_LEAN_AND_MEAN
@@ -17,7 +22,7 @@
 
 
 #define DEFAULT_PORT "1337"
-#define DEFAULT_BUFLEN 512
+#define DEFAULT_BUFLEN 12
 
 class addr_info
 {
@@ -168,11 +173,11 @@ int main()
 	bool receive_data = true;
 		while (receive_data)
 		{
-			iResult = recv(ClientSocket, recvbuf, recvbuflen, 0);
+			iResult = recv(ClientSocket, recvbuf, recvbuflen - 1, 0);
 			if (iResult > 0)
 			{
 				std::cout << iResult << " Bytes received" << std::endl;
-
+				recvbuf[iResult] = '\0';
 				std::cout << "Received data is : " << recvbuf << std::endl;
 
 				//// Echo the buffer back to the sender
