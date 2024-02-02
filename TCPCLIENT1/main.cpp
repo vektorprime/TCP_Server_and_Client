@@ -22,14 +22,74 @@
 #pragma comment (lib, "AdvApi32.lib")
 
 #define DEFAULT_PORT "1337"
-#define DEFAULT_BUFLEN 12
+#define DEFAULT_BUFLEN 512
+
+class addr_info
+{
+public:
+	struct addrinfo *result = NULL, *ptr = NULL, hints;
+
+	addr_info()
+	{
+		ZeroMemory(&hints, sizeof(hints));
+	}
+	~addr_info()
+	{
+		freeaddrinfo(result);
+	}
+private:
+};
+
+class wsa_data
+{
+public:
+	int result = 0;
+	WSADATA wsaData{};
+
+	wsa_data()
+	{
+		//request ver 2.2 of winsock be setup at address of wsaData		
+		result = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	}
+
+	~wsa_data()
+	{
+		WSACleanup();
+	}
+
+private:
+};
 
 
+class net_socket
+{
+public:
+	SOCKET socket_instance = INVALID_SOCKET;
+
+	net_socket() = default;
+	net_socket(addr_info &name_hint)
+	{
+		socket_instance = socket(name_hint.result->ai_family, name_hint.result->ai_socktype, name_hint.result->ai_protocol);
+	}
+	~net_socket()
+	{
+		closesocket(socket_instance);
+	}
+
+private:
+};
 
 int main()
 {
-	WSADATA wsaData{};
-	struct addrinfo *result = NULL, *ptr = NULL, hints;
+	wsa_data wsaData{};
+	int iResult = 0;
+
+
+	if (wsaData.result != 0)
+	{
+		std::cout << "WSAStartup failed" << std::endl;
+		return 1;
+	}
 
 	std::string server_address_q;
 	std::cout << "Enter the server hostname or IPv4 address" << std::endl;
@@ -37,61 +97,38 @@ int main()
 	std::cin.ignore();
 	PCSTR server_address = server_address_q.c_str();
 
+	addr_info name_hint{};
+	name_hint.hints.ai_family = AF_INET;
+	name_hint.hints.ai_socktype = SOCK_STREAM;
+	name_hint.hints.ai_protocol = IPPROTO_TCP;
+	//////setting the AI_PASSIVE flag here means we'll bind a socket
+	////name_hint.hints.ai_flags = AI_PASSIVE;
 
-	//init winsock
-	int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	iResult = getaddrinfo(NULL, DEFAULT_PORT, &name_hint.hints, &name_hint.result);
 	if (iResult != 0)
 	{
-		std::cout << "WSAStartup failed" << std::endl;
-		return 1;
-	}
 
-
-	ZeroMemory(&hints, sizeof(hints));
-	//sets the l3 proto as IPv4
-	hints.ai_family = AF_INET;
-	//sets the l4 proto to tcp, requires IPPROTO_TCP as the ai_protocol
-	hints.ai_socktype = SOCK_STREAM;
-	//sets the l4 proto to tcp
-	hints.ai_protocol = IPPROTO_TCP;
-
-	//we use the hints to select an adapter
-	iResult = getaddrinfo(server_address, DEFAULT_PORT, &hints, &result);
-	if (iResult != 0)
-	{
 		std::cout << "getaddrinfo failed" << std::endl;
-	}
-
-	SOCKET ConnectSocket = INVALID_SOCKET;
-
-	//set the socket up to the first IP learned by getaddrinfo
-	ptr = result;
-	ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
-	//check for errors
-	if (ConnectSocket == INVALID_SOCKET)
-	{
-		std::cout << "Error creating the socket" << std::endl;
-		freeaddrinfo(result);
-		WSACleanup();
 		return 1;
 	}
 
-	//////////////
-	//connect to the tcp server
-	iResult = connect(ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
+	net_socket ConnectSocket(name_hint);
+	if (ConnectSocket.socket_instance == INVALID_SOCKET)
+	{
+		std::cout << "ListenSocket failed" << std::endl;
+		return 1;
+	}
+
+	iResult = connect(ConnectSocket.socket_instance, name_hint.result->ai_addr, (int)name_hint.result->ai_addrlen);
 	if (iResult == SOCKET_ERROR)
 	{
-		closesocket(ConnectSocket);
-		ConnectSocket = INVALID_SOCKET;
+		std::cout << "bind failed" << std::endl;
+		return 1;
 	}
 
-	//no longer need the result object since we select our interface and IP
-	freeaddrinfo(result);
-
-	if (ConnectSocket == INVALID_SOCKET)
+	if (ConnectSocket.socket_instance == INVALID_SOCKET)
 	{
 		std::cout << "Unable to connect to server" << std::endl;
-		WSACleanup;
 		return 1;
 	}
 
@@ -126,14 +163,11 @@ int main()
 					break;
 				}
 			}
-	/*		int testint = strlen(sendbuff);
-			std::cout << testint << std::endl;*/
-			iResult = send(ConnectSocket, sendbuff, strlen(sendbuff), 0);
+	
+			iResult = send(ConnectSocket.socket_instance, sendbuff, strlen(sendbuff), 0);
 			if (iResult == SOCKET_ERROR)
 			{
 				std::cout << "Send failed" << std::endl;
-				closesocket(ConnectSocket);
-				WSACleanup();
 				return 1;
 			}
 			memset(&sendbuff, 0, sizeof(sendbuff));
@@ -143,12 +177,10 @@ int main()
 		
 	}
 		//shutdown the connection for sending, but still allow the receiving of data
-		iResult = shutdown(ConnectSocket, SD_SEND);
+		iResult = shutdown(ConnectSocket.socket_instance, SD_SEND);
 		if (iResult == SOCKET_ERROR)
 		{
 			std::cout << "Shutdown failed" << std::endl;
-			closesocket(ConnectSocket);
-			WSACleanup();
 			return 1;
 		}
 
@@ -172,15 +204,6 @@ int main()
 
 		//} while (iResult > 0);
 	
-	
-
-
-	//cleanup
-	closesocket(ConnectSocket);
-	WSACleanup();
-
-
-
 	//end
 	return 0;
 

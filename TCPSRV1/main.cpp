@@ -22,7 +22,7 @@
 
 
 #define DEFAULT_PORT "1337"
-#define DEFAULT_BUFLEN 12
+#define DEFAULT_BUFLEN 512
 
 class addr_info
 {
@@ -138,7 +138,6 @@ int main()
 
 	//getaddrinfo is no longer needed once the bind is complete
 	//freeaddrinfo(name_hint.result);
-
 
 	////////////////////////////////////////////
 	//listen for incoming requests 
