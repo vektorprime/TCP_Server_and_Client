@@ -134,7 +134,8 @@ int main()
 			//bool receive_data = true;
 			//while (receive_data)
 			//{
-				iResult = recv(sock.socket_instance, recvbuf, recvbuflen - 1, 0);
+				int recv_result = WSARecv();
+				//iResult = recv(sock.socket_instance, recvbuf, recvbuflen - 1, 0);
 				if (iResult > 0)
 				{
 					std::cout << iResult << " Bytes received" << std::endl;
