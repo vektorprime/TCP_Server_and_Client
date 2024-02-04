@@ -7,6 +7,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TCPSRV1", "TCPSRV1\TCPSRV1.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TCPCLIENT1", "TCPCLIENT1\TCPCLIENT1.vcxproj", "{CE7E4BB2-1990-43E8-8FF8-9AD870907450}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{34439814-2F54-4251-ABCB-2DD69B5238F7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shared", "shared", "{DBF09323-D532-41CA-834B-B16C28F778CA}"
+	ProjectSection(SolutionItems) = preProject
+		shared\network_wrapper.h = shared\network_wrapper.h
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64

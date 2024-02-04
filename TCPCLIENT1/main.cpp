@@ -3,18 +3,17 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
 
+#undef UNICODE
+
 #define WIN32_LEAN_AND_MEAN
-
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <stdlib.h>
-#include <stdio.h>
-
+//
 #include <iostream>
 #include <string>
 #include <vector>
 #include <fstream>
+
+#include "..\shared\network_wrapper.h"
+
 
 // Need to link with Ws2_32.lib, Mswsock.lib, and Advapi32.lib
 #pragma comment (lib, "Ws2_32.lib")
@@ -22,66 +21,12 @@
 #pragma comment (lib, "AdvApi32.lib")
 
 #define DEFAULT_PORT "1337"
-#define DEFAULT_BUFLEN 512
+#define DEFAULT_BUFLEN 1024
 
-class addr_info
-{
-public:
-	struct addrinfo *result = NULL, *ptr = NULL, hints;
-
-	addr_info()
-	{
-		ZeroMemory(&hints, sizeof(hints));
-	}
-	~addr_info()
-	{
-		freeaddrinfo(result);
-	}
-private:
-};
-
-class wsa_data
-{
-public:
-	int result = 0;
-	WSADATA wsaData{};
-
-	wsa_data()
-	{
-		//request ver 2.2 of winsock be setup at address of wsaData		
-		result = WSAStartup(MAKEWORD(2, 2), &wsaData);
-	}
-
-	~wsa_data()
-	{
-		WSACleanup();
-	}
-
-private:
-};
-
-
-class net_socket
-{
-public:
-	SOCKET socket_instance = INVALID_SOCKET;
-
-	net_socket() = default;
-	net_socket(addr_info &name_hint)
-	{
-		socket_instance = socket(name_hint.result->ai_family, name_hint.result->ai_socktype, name_hint.result->ai_protocol);
-	}
-	~net_socket()
-	{
-		closesocket(socket_instance);
-	}
-
-private:
-};
 
 int main()
 {
-	wsa_data wsaData{};
+	Wsa_data wsaData{};
 	int iResult = 0;
 
 
@@ -97,7 +42,7 @@ int main()
 	std::cin.ignore();
 	PCSTR server_address = server_address_q.c_str();
 
-	addr_info name_hint{};
+	Addr_info name_hint{};
 	name_hint.hints.ai_family = AF_INET;
 	name_hint.hints.ai_socktype = SOCK_STREAM;
 	name_hint.hints.ai_protocol = IPPROTO_TCP;
@@ -112,7 +57,7 @@ int main()
 		return 1;
 	}
 
-	net_socket ConnectSocket(name_hint);
+	Net_socket ConnectSocket(name_hint);
 	if (ConnectSocket.socket_instance == INVALID_SOCKET)
 	{
 		std::cout << "ListenSocket failed" << std::endl;
