@@ -10,6 +10,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <thread>
+#include <mutex>
 
 #include "..\shared\network_wrapper.h"
 
@@ -21,9 +23,70 @@
 #define DEFAULT_PORT "1337"
 #define DEFAULT_BUFLEN 1024
 
+//global lock
+std::mutex socket_lock;
+
+//void accept_connections(Net_socket &listen_socket)
+//{
+//	while (true)
+//	{
+//		Net_socket client_socket{};
+//		client_socket.socket_instance = accept(listen_socket.socket_instance, NULL, NULL);
+//		if (client_socket.socket_instance == INVALID_SOCKET)
+//		{
+//			std::cout << "accepting a connection failed" << std::endl;
+//		}
+//		else
+//		{
+//			
+//			std::thread process_thread(process_connection, std::ref(client_socket));
+//			process_thread.detach();
+//
+//		}
+//	}
+//}
+
+void process_connection(Net_socket &&socket)
+{
+
+	while (true)
+	{
+
+		////////////////////////////////////////////
+		//send and receive data
+		char recvbuf[DEFAULT_BUFLEN]{};
+		int iSendResult{};
+		int recvbuflen = DEFAULT_BUFLEN;
+
+
+		int recv_result = recv(socket.socket_instance, recvbuf, recvbuflen - 1, 0);
+		
+
+		if (recv_result > 0)
+		{
+			std::cout << recv_result << " Bytes received" << std::endl;
+			recvbuf[recv_result] = '\0';
+			std::cout << "Received data is : " << recvbuf << std::endl;
+
+
+			//zero out the buff
+			memset(&recvbuf, 0, sizeof(recvbuf));
+		}
+
+		else if (recv_result == SOCKET_ERROR)
+		{
+			std::cout << "ERROR receiving data" << std::endl;
+		}
+
+	}
+}
+
 
 int main()
 {
+
+
+
 	////////////////////////////////////////////
 	//INITIALIZE A SOCKET
 	//init the winsock by creating a WSADATA obj
@@ -76,116 +139,59 @@ int main()
 		return 1;
 	}
 
-
+	///
+	///Create mutex to make the vector thread safe
+	/// 
 	
+	//std::mutex socket_mutex;
+
+
+	/// 
 	////////////////////////////////////////////
 	//accept connections on the socket
-	Net_socket client_socket{};
-	std::vector<Net_socket> client_sockets{};
 	
-	bool accept_connections = true;
+	//std::vector<Net_socket> client_sockets{};
 	
+	bool accept_connection = true; 
 	
-	
-	//thread will listen here for a connection, no loop required for a simple example
-	client_socket.socket_instance = accept(listen_socket.socket_instance, NULL, NULL);
+	//std::thread accept_thread(accept_connections, std::ref(listen_socket));
+	//accept_thread.detach();
 
-	client_sockets.push_back(std::move(client_socket));
-
-	if (client_sockets.back().socket_instance == INVALID_SOCKET)
+	while (true)
 	{
-		std::cout << "accepting a connection failed" << std::endl;
-		return 1;
-	}
+		Net_socket client_socket{};
+		client_socket.socket_instance = accept(listen_socket.socket_instance, NULL, NULL);
+
+		/////temp
+		//char recvbuf[DEFAULT_BUFLEN]{};
+		//int iSendResult{};
+		//int recvbuflen = DEFAULT_BUFLEN;
 
 
-	while (accept_connections)
-	{
-		const TIMEVAL socket_timeout{ 1, 0 };
-		fd_set socket_set{ client_sockets.size(), listen_socket.socket_instance };
-		int socket_check_result = select(0, &socket_set, NULL, NULL, &socket_timeout);
+		//int recv_result = recv(client_socket.socket_instance, recvbuf, recvbuflen - 1, 0);
+		//////
+		//if (recv_result > 0)
+		//{
+		//	std::cout << iResult << " Bytes received" << std::endl;
+		//	recvbuf[iResult] = '\0';
+		//	std::cout << "Received data is : " << recvbuf << std::endl;
+		//	memset(&recvbuf, 0, sizeof(recvbuf));
+		//}
 
-		if (socket_check_result)
+		if (client_socket.socket_instance == INVALID_SOCKET)
 		{
-			Net_socket new_client_socket{};
-			new_client_socket.socket_instance = accept(listen_socket.socket_instance, NULL, NULL);
-			//thread will listen here for a connection, no loop required for a simple example
-			if (new_client_socket.socket_instance == INVALID_SOCKET)
-			{
-				std::cout << "accepting a connection failed" << std::endl;
-				return 1;
-			}
-			client_sockets.push_back(std::move(new_client_socket));
+			std::cout << "accepting a connection failed" << std::endl;
 		}
-
-		for (Net_socket &sock : client_sockets)
+		else
 		{
-
-
-			//no longer need the server socket because??
-		//closesocket(listen_socket);
-
-		////////////////////////////////////////////
-		//send and receive data
-			char recvbuf[DEFAULT_BUFLEN]{};
-			int iSendResult{};
-			int recvbuflen = DEFAULT_BUFLEN;
-
-			//bool receive_data = true;
-			//while (receive_data)
-			//{
-				int recv_result = WSARecv();
-				//iResult = recv(sock.socket_instance, recvbuf, recvbuflen - 1, 0);
-				if (iResult > 0)
-				{
-					std::cout << iResult << " Bytes received" << std::endl;
-					recvbuf[iResult] = '\0';
-					std::cout << "Received data is : " << recvbuf << std::endl;
-
-					//// Echo the buffer back to the sender
-					//iSendResult = send(ClientSocket, recvbuf, iResult, 0);
-					//if (iSendResult == SOCKET_ERROR) {
-					//	printf("Send failed with error: %d\n", WSAGetLastError());
-					//	closesocket(ClientSocket);
-					//	WSACleanup();
-					//	return 1;
-					//}
-
-					//std::cout << iSendResult << " Bytes sent" << std::endl;
-				//}
-				//else
-				//{
-				//	receive_data = false;
-				//}
-				//zero out the buff
-				memset(&recvbuf, 0, sizeof(recvbuf));
-			}
-
-			//if (iResult == 0)
-			//{
-			//	std::cout << "Closing connection" << std::endl;
-			//	////////////////////////////////////////////
-			//	//begin shutting down the connection, only allow data to be received not sent
-
-			//	iResult = shutdown(sock.socket_instance, SD_SEND);
-			//	if (iResult == SOCKET_ERROR)
-			//	{
-			//		std::cout << "Shutdown failed" << std::endl;
-			//		return 1;
-			//	}
-
-			//}
-			//else
-			//{
-			//	std::cout << "Receive failed" << std::endl;
-			//	return 1;
-			//}
-
-
+			std::thread process_thread(process_connection, std::move(client_socket));
+			process_thread.detach();
+			//works when I use .join()
+			//process_thread.join();
+			//also works when I use the normal function, so I know the issue is the thread
+			//process_connection(std::move(client_socket));
 		}
-
 	}
-	
 
 	return 0;
 }

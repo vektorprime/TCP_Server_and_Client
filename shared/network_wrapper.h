@@ -54,7 +54,6 @@ struct Addr_info
 
 struct Wsa_data
 {
-public:
 	int result = 0;
 	WSADATA wsaData{};
 
@@ -91,7 +90,11 @@ public:
 
 struct Net_socket
 {
+	//DWORD bytes_in_buffer = 0;
+	//DWORD flags = 0;
 	SOCKET socket_instance = INVALID_SOCKET;
+	//char wsaRawBuf[DEFAULT_BUFLEN]{};
+	//WSABUF wsaBuf{ DEFAULT_BUFLEN, wsaRawBuf };
 
 	//default ctor
 	Net_socket() = default;
@@ -113,6 +116,7 @@ struct Net_socket
 
 	//move ctor
 	Net_socket(Net_socket &&other) noexcept = default;
+
 
 	//copy assignment
 	Net_socket &operator=(const Net_socket &other) = delete;
